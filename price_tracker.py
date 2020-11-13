@@ -1,13 +1,14 @@
-import ezgmail
+from bs4 import BeautifulSoup
 from csv import DictReader, DictWriter
 import os.path
 from os import path
-import re
+import re, requests, ezgmail
 
-user_data = {}  #item number, name, email address, item URL, description
+user_data = {}  #{item number = name, email address, item URL, description}
 price_data = {} #line number, item number, date, price
 welcome_message = ""  #TODO create generic welcome message
 help_message = ""   #TODO create help message 
+user_data_headers = ["Item Number","Name","Email Address", "Item URL", "Description"]
 
 class User (self, message):
     def __init__(self):
@@ -27,37 +28,50 @@ class User (self, message):
             items.append(item_num)
         items.sort()
         user_data[items[len(items) + 1]] = [self.message[0],self.message[1],self.message[2],self.message[3]]
-        #TODO Save User data to CSV
-    def _purge(self):
-        pass
-    def _help(self):
-        pass
-    def _status(self):
-        pass
-    def _admin(self):
-        pass
-    def _delete(self):
-        pass
+        #save user data to CSV
+        with open("Users_and_items.csv","w") as file:
+            csv_writer = DictWriter(file,fieldnames = headers)
+            csv_writer.writerow(user_data)
 
-# class Scrape(self, item_url):
-#     def __init__(self):
-#         pass
-#     def _new_scrape(self):
-#         pass
-#     def _update(self):
-#         pass
-#     def _save(self):
-#         pass
-#     def _delete(self):
-#         pass
+    def _purge(self):
+        for  key, information in user_data.items():
+            if self.message[1] in information:
+                del user_data[key]
+            
+    def _help(self):
+        ezgmail.send(self.message[1],"Help using EZ-scrape",help_message)
+    def _summary(self): #TODO create summary email template that can be linked to here
+        pass
+    # def _admin(self):
+    #     pass
+    def _delete(self):
+        counter = 0
+        for key, information in user_data.items():
+            for URL in self.message[3]:
+                if URL and self.message[1] in information:
+                    del user_data[key]
+                    counter += 1
+        if counter != len(self.message[3]):
+            ezgmail.send(self.message[1], "Unable to process your delete command", f"We were unable to find all the URl(s) ({self.message[3]}) in our records.\n The ones that we could find were deleted. \n Try sending the command: summary\n to see what we have on file.")
+        else:
+            ezgmail.send(self.message[1],"Confirmation", f'Your request to delete the URL(s): {self.message[3]}\n has been completed successfully!')
+
+class Scrape(self, user_info):
+    def __init__(self):
+        self.user_info = user_info
+    def _new_scrape(self):
+        response = requests.get(user_info)
+
+    def _save(self):
+        pass
 
 def user_csv_exist():    
     if path.exists("Users_and_items.csv"):
         pass
     else:
         with open("Users_and_items.csv","w") as file:
-            headers = ["Item Number","Name","Email Address", "Item URL", "Description"]
-            csv_writer = DictWriter(file, fieldnames = headers)
+            
+            csv_writer = DictWriter(file, fieldnames = user_data_headers)
             csv_writer.writeheader()
 
 def price_csv_exist():
@@ -124,13 +138,14 @@ def get_new_mail(new_mail):
 def welcome_email(name, email):
     ezgmail.send(email,f"Hey! Welcome {name}!",
     f"Hi {name}!\n{welcome_message}\n{help_message}")
+
 def confirmation_email(email_address):
     ezgmail.send(email_address, 'Received your email',"Confirmed")  #TODO Add in relelvent information to the confirmation email body
 
 def command_logic(messages):   #When a user sends a command 
 
 #**********************************Email Error Checking**********************************
-    commands = ("help", "status", "delete", "purge", "new user", "add")
+    commands = ("help", "summary", "delete", "purge", "new user", "add")
     website_pattern = re.compile(r"(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,})"
     ,re.IGNORECASE)
     
@@ -159,13 +174,17 @@ def command_logic(messages):   #When a user sends a command
                 mailer._add()
             elif message[2] == "help":
                 mailer._help()
-            elif message[2] == "status":
-                mailer._status()
+            elif message[2] == "summary":
+                mailer._summary()
             elif message[2] == "delete":
                 mailer._delete()
             elif message[2] == "purge":
                 mailer._purge()
     return True
+
+def scraping_schedule():    #TODO 
+    update_scrape = Scrape(user_data)
+
 
 def main():
     user_csv_exist()    #Initialization to make sure there are CSV files
