@@ -2,8 +2,9 @@ from bs4 import BeautifulSoup
 from csv import DictReader, DictWriter
 import os.path
 from os import path
-import re, requests, ezgmail
-
+import re, requests 
+from datetime import date, time
+import ezgmail
 user_data = {}  #{item number = name, email address, item URL, description}
 price_data = {} #line number, item number, date, price
 welcome_message = ""  #TODO create generic welcome message
@@ -30,7 +31,7 @@ class User (self, message):
         user_data[items[len(items) + 1]] = [self.message[0],self.message[1],self.message[2],self.message[3]]
         #save user data to CSV
         with open("Users_and_items.csv","w") as file:
-            csv_writer = DictWriter(file,fieldnames = headers)
+            csv_writer = DictWriter(file,fieldnames = user_data_headers)
             csv_writer.writerow(user_data)
 
     def _purge(self):
@@ -56,11 +57,14 @@ class User (self, message):
         else:
             ezgmail.send(self.message[1],"Confirmation", f'Your request to delete the URL(s): {self.message[3]}\n has been completed successfully!')
 
-class Scrape(self, user_info):
-    def __init__(self):
-        self.user_info = user_info
-    def _new_scrape(self):
-        response = requests.get(user_info)
+# class Scrape(self, user_info):
+#     def __init__(self):
+#         self.user_info = user_info
+#     def _new_scrape(self):
+#         for key, values in user_info.items():
+#             for URL in values[3]:
+#                 response = requests.get(URL)
+            
 
     def _save(self):
         pass
@@ -201,4 +205,179 @@ def main():
         current_email_addresses = email_list(user_data)
         print(new_messages)
 main()
+
+class Data (self):
+    price_headers = ["Entry number","Item number", "Date", "Price", "Description"]
+    user_data_headers = ["Item Number","Email Address", "Name", "Website","Item URL"]
+    
+    def __init__(self):
+        pass
+
+    def item_csv_exists (self):
+        if path.exists("Users_and_items.csv"):
+            pass
+        else:
+            with open("Users_and_items.csv","w") as file:
+                csv_writer = DictWriter(file, fieldnames = Data.user_data_headers)
+                csv_writer.writeheader()
+
+    def price_csv_exists (self):
+        if path.exists("Prices.csv"):
+            pass
+        else:
+            with open("Prices.csv", "w") as file:
+                csv_writer = DictWriter(file, fieldnames = Data.price_headers)
+                csv_writer.writeheader()
+    
+    def load_item_data (self):
+        item_data = {}
+        with open("Users_and_items.csv","r") as file:
+            csv_reader = DictReader(file)
+            for row in csv_reader:
+                item_data[row["Item Number"]] = {
+                    "name" : row["Name"],
+                    "email" : row["Email Address"],
+                    "website" : row["Website"],
+                    "URL" : row["Item URL"]
+                }
+            return item_data
+
+    def load_price_data (self):
+        price_data = {}
+        with open("Prices.csv", "r") as file:
+            csv_reader = DictReader(file)
+            for row in csv_reader:
+                price_data[row["Entry number"]] = {
+                   "item_num" : row["Item number"],
+                   "date" : row["Date"],
+                   "price" : row["Price"],
+                   "descrip" : row["Description"]
+                }
+            return price_data
+
+    def save_item_data (self, name, email, website, URL):
+        self.name = name
+        self.email = email
+        self.website = website
+        self.URL = URL
+        
+        counter = 0
+        new_data = {}
+        
+        with open("Users_and_items.csv", "r") as file:
+            csv_reader = DictReader(file, fieldnames= Data.user_data_headers)
+            for row in csv_reader:
+                counter += 1
+            counter += 1
+        
+        new_data["Item Number" : counter] = {
+            "Name" : self.name,
+            "Email Address" : self.email,
+            "Website" : self.website,
+            "URL" : self.URL
+        }    
+        
+        with open("Users_and_items.csv", "a+") as file:
+            csv_writer = DictWriter(file, fieldnames = Data.user_data_headers)
+            csv_writer.writerow(new_data)
+
+    def save_price_data (self, item_number, price, description):
+        self.item_number = item_number
+        self.price = price
+        self.description = description
+
+        counter = 0
+        new_price_data = {}
+        today = date.today()
+
+        with open("Prices.csv", "r") as file:
+            csv_reader = DictReader(file, fieldnames= Data.price_headers)
+            for row in csv_reader:
+                counter += 1
+            counter += 1
+        
+        new_price_data["Entry Number" : counter] = {
+            "Item number" : self.item_number,
+            "Date" : today,
+            "Price" : self.price,
+            "Description" : self.description
+        }
+
+        with open("Prices.csv", "a+") as file:
+            csv_writer = DictWriter(file, fieldnames= Data.price_headers)
+            csv_writer.writerow(new_price_data)
+    
+    def del_item_data (self):
+        pass
+    def del_price_data (self):
+        pass
+
+class Email (self):
+    email_data = {}
+    def __init__(self):
+        pass
+    
+    def check_new_email(self):
+        unread_threads = ezgmail.unread()
+        if len(unread_threads) == 0:
+            return None
+        else:
+            return unread_threads
+    
+    def load_email(self, unread_threads):
+        self.unread_threads = unread_threads
+        email = Email()
+        for i in range(len(unread_threads)):
+            email.process_email(unread_threads[i])
+    
+    def process_email(self, thread):
+        self.thread = thread
+        
+        email_pattern = re.compile(r"""
+        ([a-z0-9_\.-]+) #Selecting the email address
+        @
+        ([0-9a-z\.-]+)
+        \.
+        ([a-z\.]{2,6}) 
+        """, re.VERBOSE | re.IGNORECASE)
+        name_pattern = re.compile(r"""
+        (\w{3,}\s)  #selecting the name
+        """, re.VERBOSE)
+        website_pattern = re.compile(r"""(https?:\/\/(?:www\.
+        |(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}
+        |www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}
+        |https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}
+        |www\.[a-zA-Z0-9]+\.[^\s]{2,})"""
+        ,re.IGNORECASE | re.VERBOSE)
+        
+        email_address = email_pattern.search(self.thread.messages[0].sender).group(0).strip()
+        name = name_pattern.search(self.thread.messages[0].sender).group(0).strip()
+        subject = self.thread.messages[0].subject
+        body = self.thread.messages[0].body 
+        websites = re.findall(website_pattern,body) #[websites]
+
+    def command_check(self):
+        pass
+    def command_follow(self):
+        pass
+    def error_check(self):
+        pass
+    def erase_email(self):
+        pass
+    def send_email(self):
+        pass
+
+
+class Scrape (self):
+    def __init__(self):
+        pass
+    def scheduler (self):
+        pass
+    def amazon(self):
+        pass
+    def best_buy(self):
+        pass
+    def HD (self):
+        pass
+
 
