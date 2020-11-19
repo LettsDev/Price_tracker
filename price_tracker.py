@@ -350,12 +350,12 @@ class Email:
         (\w{3,}\s)  
         """, re.VERBOSE)
         
-        URL_pattern = re.compile(r"""(https?:\/\/(?:www\.
+        url_pattern = re.compile(r"""(https?:\/\/(?:www\.
         |(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}
         |www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}
         |https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}
         |www\.[a-zA-Z0-9]+\.[^\s]{2,})"""
-        ,re.IGNORECASE | re.VERBOSE)
+        , re.IGNORECASE | re.VERBOSE)
 
         website_pattern = re.compile(r"""(\.+)([a-zA-z0-9+]+)(\.)""")
         
@@ -363,10 +363,10 @@ class Email:
         name = name_pattern.search(self.thread.messages[0].sender).group(0).strip()
         subject = self.thread.messages[0].subject.strip().lower()
         body = self.thread.messages[0].body 
-        URLs = re.findall(URL_pattern,body) #[website URLs]
+        URLs = re.findall(url_pattern,body) #[website URLs]
         websites = []
-        for URL in URLs:
-            websites.append(re.findall(website_pattern, URL))
+        for url in URLs:
+            websites.append(website_pattern.match(url).group(2))   #TODO 
 
         
         Email.email_data = {
@@ -374,7 +374,8 @@ class Email:
             "subject" : subject,
             "URLs" : URLs,
             "email address" : email_address,
-            "body" : body   
+            "body" : body,   
+            "websites" : websites
         }
     
     def cmd_error_check(self):
@@ -427,7 +428,7 @@ class Email:
         name = Email.email_data["name"]
         email_address = Email.email_data["email_address"]
         Email.email_data
-        Email.email_data
+        Email.email_data                #TODO
     #----------------------Command methods----------------------------
     
     
@@ -445,7 +446,22 @@ class Scrape:
         pass
     def scheduler (self):
         pass
-    def website_choice(self):
+    def website_choice(self, website):
+        self.website = website
+        if self.website == "amazon":
+            Scrape.amazon()
+        elif self.website == "bestbuy":
+            Scrape.best_buy()
+        elif self.website == "homedepot":
+            Scrape.HD()
+        elif self.website == "staples":
+            Scrape.staples()
+    
+    def retrieve(self):
+        headers = {'User-agent':"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.125 Safari/537.36"}
+        
+
+        Data.price_data
         pass
     def amazon(self):
         pass
@@ -453,7 +469,7 @@ class Scrape:
         pass
     def HD (self):
         pass
-    def Staples (self):
+    def staples (self):
         pass
 
 
